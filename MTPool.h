@@ -71,6 +71,12 @@ class MTPoolManager : public CCObject{
 	MTPoolManager(){
 		pools = CCArray::array();
 		pools->retain();
+		CCDirector::sharedDirector()->getScheduler()->scheduleSelector(
+				schedule_selector(MTPoolManager::freeObjects)
+				,this
+				,1
+				,false
+			);
 	}
 	~MTPoolManager(){
 		pools->release();
