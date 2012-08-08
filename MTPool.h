@@ -3,78 +3,6 @@
 using namespace boost;
 USING_NS_CC;
 
-template<class T>
-class MTPool {
-protected:
-	T* memory;
-	CCArray* pool;
-	CCArray* freePool;
-	object_pool<T> objectPool;
-
-	CCObject* getFreeObject(){
-		CCObject*pRet=NULL;
-		if(freePool->count()==0){
-			collectObjects();
-		}
-		if(freePool->count()!=0){
-			pRet = freePool->lastObject();
-			pRet->retain();
-			freePool ->removeLastObject();
-			pRet->autorelease();
-		}
-		return pRet;
-	}
-	T* makeNewObject(){
-		return objectPool.construct();
-	}
-	MTPool(){
-		const int originSize = 100;
-		pool = CCArray::arrayWithCapacity(originSize);	pool->retain();
-		freePool = CCArray::arrayWithCapacity(originSize);	freePool->retain();
-		memory = new T[originSize];
-		for(int i=0;i<originSize;i++){
-			T *pObj = memory+i;
-			freePool->addObject(pObj);
-		}
-	}
-	void pushObject(T* pObj){
-		pool->addObject(pObj);
-	}
-public:
-	~MTPool(){
-		pool->removeAllObjects();			pool->release();
-		freePool->removeAllObjects();		freePool->release();
-	}
-	static MTPool* sharedPool(){
-		static MTPool __sharedPool;
-		return &__sharedPool;
-	}
-	void collectObjects(){
-		CCArray *tmp = CCArray::arrayWithCapacity(pool->count());
-		int count =pool->count();
-		for(int i=0;i<count;i++){
-			CCObject *pObj = pool->objectAtIndex(i);
-			if(pObj->retainCount()==1){
-				freePool->addObject(pObj);
-				tmp->addObject(pObj);
-			}
-		}
-		pool->removeObjectsInArray(tmp);
-	}
-	void freeObjects(){
-		collectObjects();
-		freePool->removeAllObjects();
-	}
-	T* getObject(){
-		T* pObj = dynamic_cast<T*>( getFreeObject() );
-		if(pObj == NULL){
-			pObj = makeNewObject();
-		}
-		this->pushObject(pObj);
-		return pObj;
-	}
-};
-
 class ObjectPoolProtocol : public CCObject{
 public:
 	virtual void freeObjects(int maxScan=100)=0;
@@ -164,12 +92,4 @@ public:
 		return pObj = MTPoolFromBoost<T>::sharedPool()->getObject();
 	}
 };
-
-
-
-
-
-
-
-
 
